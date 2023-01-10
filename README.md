@@ -1,2 +1,2 @@
 # iris
-predicting iris species w tensorflow through linear regression
+predicting iris species w tensorflow through logistic regression
