@@ -1,68 +1,37 @@
-import pandas as pd
 import tensorflow as tf
-from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.datasets import load_iris
+import pandas as pd
+import numpy as np
+import seaborn as sns
 
-pd.options.display.float_format = '{:.1f}'.format
-pd.options.display.max_rows = 10
+iris_df = load_iris()
+iris_df = pd.DataFrame(iris_df.data, columns=iris_df.feature_names)
 
-# Load dataset
-training_df = pd.read_csv("Iris.csv")
+print(iris_df.head())
 
-# Build model
-model = None
+iris_df = (iris_df - iris_df.mean()) / iris_df.std()
 
+x = iris_df['data']
+y = iris_df['target']
 
-def build_model(learning_rate):
-    model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.Dense(units=1, input_shape=(1,)))
+encoder = OneHotEncoder()
+y = encoder.fit_transform(y.reshape(-1, 1))
 
-    model.compile(optimizer=tf.keras.optimizers.RMSprop(lr=learning_rate),
-                  loss="mean_squared_error",
-                  metrics=[tf.keras.metrics.RootMeanSquaredError()])
-    return model
+test_size = 0.2
 
-# Model training, hyperparameters
+X_train, X_test, y_train, y_test = train_test_split(x, y,
+                                                    test_size=test_size,
+                                                    shuffle=True,
+                                                    random_state=13)
 
+model = tf.keras.models.Sequential()
+model.add(tf.keras.layers.Dense(10, input_shape=(4,), activation='relu'))
+model.add(tf.keras.layers.Dense(3, activation='softmax'))
 
-def train_model(model, df, feature, label, epochs, batch_size):
-    history = model.fit(x=df[feature],
-                        y=df[label],
-                        batch_size=batch_size,
-                        epochs=epochs)
-
-    trained_weight = model.get_weights()[0]
-    trained_bias = model.get_weights()[1]
-
-    epochs = history.epoch
-    hist = pd.DataFrame(history.history)
-
-    rmse = hist["root_mean_squared_error"]
-
-    return trained_weight, trained_bias, epochs, rmse
-
-# Plotting loss curve
-
-
-def plot_loss_curve(epochs, rmse):
-    plt.figure()
-    plt.xlabel("Epoch")
-    plt.ylabel("Root Mean Squared Error")
-
-    plt.plot(epochs, rmse, label="Loss")
-
-    plt.show()
-
-
-# Setting hyperparameters
-learning_rate = number
-epochs = number
-batch_size = number
-
-# Setting features
-feature = "SepalLengthCm"
-
-
-
-
-
+# Compile
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
 
