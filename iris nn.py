@@ -1,55 +1,36 @@
-import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-import pandas as pd
-from matplotlib import pyplot as plt
 import numpy as np
-import seaborn as sns
+import pandas as pd
+import tensorflow as tf
+from sklearn.preprocessing import LabelEncoder
 
+# Reading, dropping ID column
 iris_df = pd.read_csv('iris.csv')
 iris_df = iris_df.drop(columns=['Id'])
 
-print(iris_df.head())
+# Making columns into Z scores
+iris_df = iris_df.apply(lambda x: (x - x.mean()) / x.std(), axis=0)
 
+# Encoding "species" column and setting as a label
+label_encoder = LabelEncoder()
+iris_df['Species'] = label_encoder.fit_transform(iris_df['Species'])
+
+# Setting features and creating feature layer
 feature_columns = []
 for x in iris_df.columns:
-    feature_columns.append(tf.feature_column.numeric_column(x))
+    if x != 'Species':
+        feature_columns.append(tf.feature_column.numeric_column(x))
 
 feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
 
 
-# Plot loss curve
-
-
-def plot_loss_curve(epochs, mse):
-    plt.figure()
-    plt.xlabel("Epoch")
-    plt.ylabel("Mean Squared Error")
-
-    plt.plot(epochs, mse, label="Loss")
-    plt.legend()
-    plt.ylim([mse.min() * 0.95, mse.max() * 1.05])
-    plt.show()
-
-
 def create_model(learning_rate, feature_layer):
-    model = tf.keras.models.Sequential()
-    model.add(feature_layer)
+    inputs = tf.keras.Input(shape=(4,))
+    x = feature_layer(inputs)
+    x = tf.keras.layers.Dense(10, activation='relu')(inputs)
+    x = tf.keras.layers.Dense(10, activation='relu')(x)
+    outputs = tf.keras.layers.Dense(3, activation='softmax')(x)
 
-    model.add(tf.keras.layers.Dense(units=20,
-                                    activation='relu',
-                                    name='Hidden1'))
-
-    model.add(tf.keras.layers.Dense(units=12,
-                                    activation='relu',
-                                    name='Hidden2'))
-
-    model.add(tf.keras.layers.Dense(units=1,
-                                    name='Output'))
-
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-                  loss="mean_squared_error",
-                  metrics=[tf.keras.metrics.MeanSquaredError()])
+    model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
 
     return model
 
@@ -68,16 +49,19 @@ def train_model(model, dataset, epochs, label_name, batch_size=None):
 
     return epochs, mse
 
-# Setting hyperparameters
 
+# Setting hyperparameters
 learning_rate = 0.01
 epochs = 100
 batch_size  = 1000
 
+# Set label
 label_name = "Species"
 
+# Build model
 my_model = create_model(learning_rate, feature_layer)
 
+# Train data
 epochs, mse = train_model(my_model, iris_df, epochs, label_name, batch_size)
 plot_loss_curve(epochs, mse)
 
